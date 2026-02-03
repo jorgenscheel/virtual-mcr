@@ -1,0 +1,62 @@
+{
+  "UUID": "com.remoteproduction.vmcr",
+  "Version": "0.1.0",
+  "Name": "Virtual MCR",
+  "Description": "Virtual Master Control Room — IP video source switching for journalists",
+  "Category": "Virtual MCR",
+  "CategoryIcon": "imgs/category-icon",
+  "Icon": "imgs/plugin-icon",
+  "Author": "Remote Production AS",
+  "URL": "https://remoteproduction.no",
+  "CodePath": "bin/plugin.js",
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "enabled"
+  },
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.7"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "mac",
+      "MinimumVersion": "10.15"
+    }
+  ],
+  "Actions": [
+    {
+      "UUID": "com.remoteproduction.vmcr.select-source",
+      "Name": "Select Source",
+      "Icon": "imgs/select-source",
+      "Tooltip": "Switch an output to a video source",
+      "PropertyInspectorPath": "ui/select-source-pi.html",
+      "States": [
+        {
+          "Image": "imgs/select-source",
+          "TitleAlignment": "bottom",
+          "FontSize": "9"
+        }
+      ],
+      "Controllers": ["Keypad"]
+    },
+    {
+      "UUID": "com.remoteproduction.vmcr.output-status",
+      "Name": "Output Status",
+      "Icon": "imgs/output-status",
+      "Tooltip": "Display current output source (read-only)",
+      "PropertyInspectorPath": "ui/output-status-pi.html",
+      "States": [
+        {
+          "Image": "imgs/output-status",
+          "TitleAlignment": "bottom",
+          "FontSize": "9"
+        }
+      ],
+      "Controllers": ["Keypad"]
+    }
+  ]
+}

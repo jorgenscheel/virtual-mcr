@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Select Source</title>
+  <style>
+    :root {
+      --bg: #2d2d2d;
+      --surface: #3a3a3a;
+      --border: #555;
+      --text: #ddd;
+      --accent: #2196F3;
+      --accent-hover: #42a5f5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 12px;
+      color: var(--text);
+      background: var(--bg);
+      padding: 12px;
+    }
+    .section {
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 6px 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-size: 12px;
+      outline: none;
+    }
+    input[type="text"]:focus, select:focus {
+      border-color: var(--accent);
+    }
+    .field {
+      margin-bottom: 10px;
+    }
+    .radio-group {
+      display: flex;
+      gap: 16px;
+      margin-top: 4px;
+    }
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-weight: normal;
+    }
+    .radio-group input[type="radio"] {
+      accent-color: var(--accent);
+    }
+    .output-a { color: #2196F3; }
+    .output-b { color: #FF9800; }
+    button {
+      padding: 6px 16px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    button:hover { background: var(--accent-hover); }
+    .status {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+    }
+    .status.error { color: #F44336; }
+    .status.success { color: #4CAF50; }
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 16px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="section">
+    <div class="section-title">Connection</div>
+    <div class="field">
+      <label for="workerUrl">Worker URL</label>
+      <input type="text" id="workerUrl" placeholder="https://vmcr-api.your-domain.workers.dev" />
+    </div>
+    <div class="field">
+      <label for="apiKey">API Key</label>
+      <input type="text" id="apiKey" placeholder="Your API key" />
+    </div>
+    <button id="saveConnection">Save &amp; Connect</button>
+    <div id="connectionStatus" class="status"></div>
+  </div>
+
+  <hr />
+
+  <div class="section">
+    <div class="section-title">Source Selection</div>
+    <div class="field">
+      <label for="sourceSelect">Source</label>
+      <select id="sourceSelect">
+        <option value="">— Select a source —</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Output</label>
+      <div class="radio-group">
+        <label><input type="radio" name="outputId" value="A" checked /> <span class="output-a">Output A</span></label>
+        <label><input type="radio" name="outputId" value="B" /> <span class="output-b">Output B</span></label>
+      </div>
+    </div>
+    <button id="refreshSources">Refresh Sources</button>
+  </div>
+
+  <script>
+    // Stream Deck PI SDK (loaded from SDK)
+    // In SDK 7.x the PI communicates via the SDPIComponents or manual WebSocket
+    // For simplicity, we use the standard PI communication pattern
+
+    let websocket = null;
+    let pluginUUID = null;
+    let actionInfo = null;
+    let globalSettings = {};
+    let actionSettings = {};
+
+    function connectElgatoStreamDeckSocket(port, uuid, registerEvent, info, actionInfoStr) {
+      pluginUUID = uuid;
+      actionInfo = JSON.parse(actionInfoStr);
+      actionSettings = actionInfo.payload?.settings || {};
+
+      websocket = new WebSocket('ws://127.0.0.1:' + port);
+
+      websocket.onopen = function() {
+        websocket.send(JSON.stringify({ event: registerEvent, uuid: pluginUUID }));
+        // Request global settings
+        websocket.send(JSON.stringify({ event: 'getGlobalSettings', context: pluginUUID }));
+      };
+
+      websocket.onmessage = function(evt) {
+        const msg = JSON.parse(evt.data);
+
+        if (msg.event === 'didReceiveGlobalSettings') {
+          globalSettings = msg.payload?.settings || {};
+          loadGlobalSettings();
+        }
+
+        if (msg.event === 'didReceiveSettings') {
+          actionSettings = msg.payload?.settings || {};
+          loadActionSettings();
+        }
+
+        if (msg.event === 'sendToPropertyInspector') {
+          handlePluginMessage(msg.payload);
+        }
+      };
+
+      // Load existing action settings
+      loadActionSettings();
+    }
+
+    function loadGlobalSettings() {
+      document.getElementById('workerUrl').value = globalSettings.workerUrl || '';
+      document.getElementById('apiKey').value = globalSettings.apiKey || '';
+    }
+
+    function loadActionSettings() {
+      if (actionSettings.sourceId) {
+        document.getElementById('sourceSelect').value = actionSettings.sourceId;
+      }
+      if (actionSettings.outputId) {
+        const radio = document.querySelector(`input[name="outputId"][value="${actionSettings.outputId}"]`);
+        if (radio) radio.checked = true;
+      }
+    }
+
+    function saveGlobalSettings() {
+      const workerUrl = document.getElementById('workerUrl').value.trim();
+      const apiKey = document.getElementById('apiKey').value.trim();
+
+      globalSettings = { workerUrl, apiKey };
+
+      if (websocket) {
+        websocket.send(JSON.stringify({
+          event: 'setGlobalSettings',
+          context: pluginUUID,
+          payload: globalSettings
+        }));
+
+        // Tell plugin to reinitialize connection
+        websocket.send(JSON.stringify({
+          event: 'sendToPlugin',
+          action: actionInfo.action,
+          context: pluginUUID,
+          payload: { command: 'setGlobalSettings', workerUrl, apiKey }
+        }));
+      }
+
+      const status = document.getElementById('connectionStatus');
+      if (workerUrl && apiKey) {
+        status.textContent = 'Settings saved. Connecting...';
+        status.className = 'status success';
+        // Request sources
+        requestSources();
+      } else {
+        status.textContent = 'Please enter Worker URL and API key.';
+        status.className = 'status error';
+      }
+    }
+
+    function saveActionSettings() {
+      const sourceId = document.getElementById('sourceSelect').value;
+      const outputId = document.querySelector('input[name="outputId"]:checked')?.value || 'A';
+
+      actionSettings = { sourceId, outputId };
+
+      if (websocket) {
+        websocket.send(JSON.stringify({
+          event: 'setSettings',
+          context: pluginUUID,
+          payload: actionSettings
+        }));
+      }
+    }
+
+    function requestSources() {
+      if (websocket) {
+        websocket.send(JSON.stringify({
+          event: 'sendToPlugin',
+          action: actionInfo.action,
+          context: pluginUUID,
+          payload: { command: 'getSources' }
+        }));
+      }
+    }
+
+    function handlePluginMessage(payload) {
+      if (payload.event === 'sourcesLoaded') {
+        const select = document.getElementById('sourceSelect');
+        const currentValue = select.value;
+
+        // Clear and repopulate
+        select.innerHTML = '<option value="">— Select a source —</option>';
+
+        if (payload.sources && payload.sources.length > 0) {
+          for (const source of payload.sources) {
+            const option = document.createElement('option');
+            option.value = source.id;
+            option.textContent = `${source.name} (${source.protocol.toUpperCase()})`;
+            select.appendChild(option);
+          }
+        }
+
+        // Restore selection
+        if (currentValue) {
+          select.value = currentValue;
+        } else if (actionSettings.sourceId) {
+          select.value = actionSettings.sourceId;
+        }
+
+        if (payload.error) {
+          const status = document.getElementById('connectionStatus');
+          status.textContent = payload.error;
+          status.className = 'status error';
+        }
+      }
+    }
+
+    // Event listeners
+    document.getElementById('saveConnection').addEventListener('click', saveGlobalSettings);
+    document.getElementById('refreshSources').addEventListener('click', requestSources);
+
+    document.getElementById('sourceSelect').addEventListener('change', saveActionSettings);
+    document.querySelectorAll('input[name="outputId"]').forEach(radio => {
+      radio.addEventListener('change', saveActionSettings);
+    });
+  </script>
+</body>
+</html>
