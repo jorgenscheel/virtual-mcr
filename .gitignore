@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+bin/
+*.js.map
+
+# Wrangler
+.wrangler/
+.dev.vars
+
+# Stream Deck compiled output
+packages/streamdeck-plugin/com.remoteproduction.vmcr.sdPlugin/bin/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temp
+tmp/

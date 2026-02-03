@@ -1,0 +1,28 @@
+{
+  "name": "virtual-mcr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Virtual Master Control Room — IP video source switching for journalists",
+  "workspaces": [
+    "packages/shared",
+    "packages/worker",
+    "packages/streamdeck-plugin"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "lint": "eslint 'packages/*/src/**/*.ts'",
+    "lint:fix": "eslint 'packages/*/src/**/*.ts' --fix",
+    "format": "prettier --write 'packages/*/src/**/*.ts'",
+    "format:check": "prettier --check 'packages/*/src/**/*.ts'"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
