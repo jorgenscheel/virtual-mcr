@@ -1,11 +1,12 @@
 name = "vmcr-api"
+account_id = "bdc06a9564a944d07bfe6ef8c6075395"
 main = "src/index.ts"
 compatibility_date = "2025-12-01"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "vmcr-sources"
-database_id = "placeholder-replace-after-create"
+database_id = "162e0423-61c3-45fc-b73e-5c7751bc4e4d"
 
 [[r2_buckets]]
 binding = "THUMBNAILS"
