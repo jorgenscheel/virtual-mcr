@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { Env } from './bindings.js';
 import { apiKeyAuth } from './middleware/auth.js';
+import { requestLogger } from './middleware/request-logger.js';
 import { sources } from './routes/sources.js';
 import { outputs } from './routes/outputs.js';
 import { health } from './routes/health.js';
@@ -13,6 +14,7 @@ export { MatrixState } from './durable-objects/matrix-state.js';
 const app = new Hono<{ Bindings: Env }>();
 
 app.use('*', cors());
+app.use('*', requestLogger);
 
 // Health check — no auth
 app.route('/api/health', health);

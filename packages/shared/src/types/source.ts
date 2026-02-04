@@ -1,32 +1,32 @@
 export type InputProtocol = 'srt' | 'rtmp' | 'bifrost' | 'ndi' | 'hls' | 'rtp';
 
-export interface SrtConnection {
+export type SrtConnection = {
   mode: 'caller' | 'listener' | 'rendezvous';
   host: string;
   port: number;
   streamId?: string;
   passphrase?: string;
   latency?: number;
-}
+};
 
-export interface RtmpConnection {
+export type RtmpConnection = {
   url: string;
   streamKey?: string;
-}
+};
 
-export interface NdiConnection {
+export type NdiConnection = {
   sourceName: string;
-}
+};
 
-export interface GenericConnection {
+export type GenericConnection = {
   url: string;
   port?: number;
   additionalParams?: Record<string, string>;
-}
+};
 
 export type ConnectionConfig = SrtConnection | RtmpConnection | NdiConnection | GenericConnection;
 
-export interface Source {
+export type Source = {
   id: string;
   name: string;
   description?: string;
@@ -36,18 +36,18 @@ export interface Source {
   thumbnailUpdatedAt?: string;
   createdAt: string;
   updatedAt: string;
-}
+};
 
-export interface CreateSourceRequest {
+export type CreateSourceRequest = {
   name: string;
   description?: string;
   protocol: InputProtocol;
   connection: ConnectionConfig;
-}
+};
 
-export interface UpdateSourceRequest {
+export type UpdateSourceRequest = {
   name?: string;
   description?: string;
   protocol?: InputProtocol;
   connection?: ConnectionConfig;
-}
+};

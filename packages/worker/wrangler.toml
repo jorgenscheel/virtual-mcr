@@ -24,4 +24,6 @@ new_classes = ["MatrixState"]
 [vars]
 ENVIRONMENT = "development"
 
+workers_dev = false
+
 # API_KEY set via: wrangler secret put API_KEY

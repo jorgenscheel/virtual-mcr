@@ -1,19 +1,19 @@
 import type { OutputId, OutputStatusValue } from '@vmcr/shared';
 import { OUTPUT_COLORS, ACTIVE_COLOR } from '@vmcr/shared';
 
-interface SourceButtonOptions {
+type SourceButtonOptions = {
   name: string;
   outputId: OutputId;
   isActive: boolean;
   thumbnailBase64?: string;
-}
+};
 
-interface StatusButtonOptions {
+type StatusButtonOptions = {
   outputId: OutputId;
   label: string;
   sourceName: string;
   status: OutputStatusValue;
-}
+};
 
 function escapeXml(text: string): string {
   return text

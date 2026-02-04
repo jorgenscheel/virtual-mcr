@@ -1,15 +1,15 @@
-import type { OutputId, OutputStatus, SwitchResult } from './output.js';
+import type { OutputId, OutputStatus } from './output.js';
 import type { Source } from './source.js';
 
-export interface ApiResponse<T> {
+export type ApiResponse<T> = {
   success: boolean;
   data?: T;
   error?: string;
-}
+};
 
-export interface SourceListResponse {
+export type SourceListResponse = {
   sources: Source[];
-}
+};
 
 export type WsMessageType =
   | 'output_changed'
@@ -18,37 +18,37 @@ export type WsMessageType =
   | 'heartbeat'
   | 'state_sync';
 
-export interface WsMessageBase {
+export type WsMessageBase = {
   type: WsMessageType;
   timestamp: string;
-}
+};
 
-export interface OutputChangedMessage extends WsMessageBase {
+export type OutputChangedMessage = WsMessageBase & {
   type: 'output_changed';
   outputId: OutputId;
   previousSourceId: string | null;
   newSourceId: string;
   source: Source | null;
-}
+};
 
-export interface SourceUpdatedMessage extends WsMessageBase {
+export type SourceUpdatedMessage = WsMessageBase & {
   type: 'source_updated';
   source: Source;
-}
+};
 
-export interface SourceDeletedMessage extends WsMessageBase {
+export type SourceDeletedMessage = WsMessageBase & {
   type: 'source_deleted';
   sourceId: string;
-}
+};
 
-export interface HeartbeatMessage extends WsMessageBase {
+export type HeartbeatMessage = WsMessageBase & {
   type: 'heartbeat';
-}
+};
 
-export interface StateSyncMessage extends WsMessageBase {
+export type StateSyncMessage = WsMessageBase & {
   type: 'state_sync';
   outputs: OutputStatus[];
-}
+};
 
 export type WsMessage =
   | OutputChangedMessage

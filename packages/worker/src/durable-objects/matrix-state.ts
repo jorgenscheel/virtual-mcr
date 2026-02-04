@@ -9,11 +9,11 @@ import type {
 } from '@vmcr/shared';
 import { OUTPUT_LABELS, WS_HEARTBEAT_INTERVAL_MS } from '@vmcr/shared';
 
-interface StoredOutputState {
+type StoredOutputState = {
   currentSourceId: string | null;
   currentSource: Source | null;
   status: 'active' | 'idle' | 'error';
-}
+};
 
 export class MatrixState implements DurableObject {
   private sessions: Set<WebSocket> = new Set();

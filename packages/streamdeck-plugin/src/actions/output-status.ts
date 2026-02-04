@@ -13,12 +13,12 @@ type OutputStatusSettings = JsonObject & {
   outputId?: string;
 };
 
-interface TrackedStatusAction {
+type TrackedStatusAction = {
   actionId: string;
   settings: OutputStatusSettings;
   setImage: (image: string) => Promise<void>;
   setTitle: (title: string) => Promise<void>;
-}
+};
 
 export class OutputStatusAction extends SingletonAction<OutputStatusSettings> {
   private tracked = new Map<string, TrackedStatusAction>();

@@ -1,0 +1,43 @@
+name: Feature Request
+description: Suggest a new feature for Virtual MCR
+labels: ["type-feature", "priority-3"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature. Please describe your idea below.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of the feature
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Why is this feature needed? What problem does it solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: How would you like this to work?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - "@vmcr/worker"
+        - "@vmcr/shared"
+        - "@vmcr/streamdeck-plugin"
+    validations:
+      required: false

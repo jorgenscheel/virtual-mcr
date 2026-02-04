@@ -18,19 +18,19 @@ type SelectSourceSettings = JsonObject & {
   outputId?: string;
 };
 
-interface SelectSourceGlobalSettings {
+type SelectSourceGlobalSettings = {
   workerUrl?: string;
   apiKey?: string;
-}
+};
 
-interface TrackedAction {
+type TrackedAction = {
   actionId: string;
   settings: SelectSourceSettings;
   setImage: (image: string) => Promise<void>;
   setTitle: (title: string) => Promise<void>;
   showAlert: () => Promise<void>;
   showOk: () => Promise<void>;
-}
+};
 
 export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
   private tracked = new Map<string, TrackedAction>();

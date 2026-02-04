@@ -1,0 +1,146 @@
+{
+  "auditDate": "2026-02-04",
+  "auditor": "Claude Code (ea-audit skill v1.8)",
+  "project": "jorgenscheel/virtual-mcr",
+  "organization": "Remote Production AS",
+  "orgCode": "rep",
+  "summary": {
+    "critical": 3,
+    "major": 10,
+    "minor": 4
+  },
+  "findings": {
+    "critical": [
+      {
+        "id": "C-1",
+        "title": "No CLAUDE.md in repo root",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "C-2",
+        "title": "Branch protection not enabled on main",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "C-3",
+        "title": "Repository in personal account",
+        "status": "deferred",
+        "reason": "Requires manual repo transfer coordination"
+      }
+    ],
+    "major": [
+      {
+        "id": "M-1",
+        "title": "TypeScript uses interface instead of type (25 declarations)",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "M-2",
+        "title": "No tests, no Vitest, no coverage config",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04",
+        "details": "Vitest 4.x installed, 35 tests, 100% statement coverage on tested modules"
+      },
+      {
+        "id": "M-3",
+        "title": "No GitHub Actions CI/CD pipeline",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "M-4",
+        "title": "Cloudflare resource naming non-compliant",
+        "status": "deferred",
+        "reason": "D1/R2 cannot be renamed, requires recreation with correct names"
+      },
+      {
+        "id": "M-5",
+        "title": "Node.js engine version spec incorrect",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "M-6",
+        "title": "ArchiMate viewpoints in wrong folder",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "M-7",
+        "title": "No BPMN process models",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "M-8",
+        "title": "No API request logging",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "M-9",
+        "title": "GitHub labels use wrong naming format",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "M-10",
+        "title": "ESLint missing type enforcement rule",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      }
+    ],
+    "minor": [
+      {
+        "id": "m-1",
+        "title": "No .nvmrc file",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "m-2",
+        "title": "No .github/ISSUE_TEMPLATE/ directory",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      },
+      {
+        "id": "m-3",
+        "title": ".workers.dev URL still accessible alongside custom domain",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04",
+        "details": "workers_dev = false added to wrangler.toml"
+      },
+      {
+        "id": "m-4",
+        "title": "No Processes/ folder structure",
+        "status": "remediated",
+        "remediatedAt": "2026-02-04"
+      }
+    ]
+  },
+  "acceptedExceptions": [
+    {
+      "item": "Stream Deck plugin uses Rollup not Vite",
+      "justification": "Vite mandate applies to UI/frontend projects. This is a Node.js backend plugin (SDK 7.x), not a UI project."
+    },
+    {
+      "item": "Wrangler 3.x (not 4.x)",
+      "justification": "Audit standard says 3.x+ (latest minor) -- 3.114.17 is compliant."
+    }
+  ],
+  "deferred": [
+    {
+      "id": "C-1-infra",
+      "title": "Transfer repo to org account",
+      "reason": "Requires manual coordination"
+    },
+    {
+      "id": "C-3-infra",
+      "title": "Recreate D1 + R2 with EA-compliant names",
+      "reason": "Requires manual Cloudflare resource recreation"
+    }
+  ]
+}
