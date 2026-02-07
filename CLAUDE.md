@@ -11,8 +11,17 @@ packages/
   shared/       @vmcr/shared    -- Shared types & constants (TypeScript library)
   worker/       @vmcr/worker    -- Cloudflare Workers API (Hono, D1, R2, Durable Objects)
   streamdeck-plugin/  @vmcr/streamdeck-plugin -- Stream Deck SDK 7.x plugin (Rollup)
-Architecture/   ArchiMate viewpoint documents
-Processes/      BPMN process models
+Architecture/                ArchiMate viewpoint documents
+  Layered/                   System overview across layers
+  Technology/                Platforms & infrastructure
+  Application-Cooperation/   Service interactions & APIs
+  Implementation/            Deployment & operations
+  Information-Structure/     Data models & schemas
+  Physical/                  Network topology & equipment
+Processes/                   BPMN process models
+  Level-1/                   Strategic orchestration
+  Level-2/                   Tactical coordination
+  Level-3/                   Implementation (executable)
 ```
 
 ## Build & Development
@@ -55,6 +64,8 @@ npm run watch -w packages/streamdeck-plugin
 - **Cloudflare resources**: `rep-vmcr-{env}-{resource}` (e.g., `rep-vmcr-dev-api`)
 - **GitHub labels**: hyphen format (e.g., `priority-1`, `type-bug`)
 - **Files**: kebab-case for all source files
+- **ArchiMate docs**: `{topic}_{viewpoint}.md` in viewpoint subfolder (e.g., `Architecture/Technology/vmcr_technology.md`)
+- **BPMN docs**: placed in `Processes/Level-{1,2,3}/` by hierarchy level
 
 ### Code Style
 
