@@ -1,0 +1,30 @@
+[server]
+host = "0.0.0.0"
+port = 9400
+
+[ndi]
+group = "vmcr"
+name_prefix = "VMCR"
+
+[persistence]
+file = "./state.json"
+
+[[channels]]
+id = "vmcr-1"
+label = "Output 1"
+color = "#2196F3"
+
+[[channels]]
+id = "vmcr-2"
+label = "Output 2"
+color = "#FF9800"
+
+[[channels]]
+id = "vmcr-3"
+label = "Output 3"
+color = "#4CAF50"
+
+[[channels]]
+id = "vmcr-4"
+label = "Output 4"
+color = "#9C27B0"

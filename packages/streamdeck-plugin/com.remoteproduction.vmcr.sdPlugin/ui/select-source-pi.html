@@ -91,48 +91,84 @@
       border-top: 1px solid var(--border);
       margin: 16px 0;
     }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <div class="section">
-    <div class="section-title">Connection</div>
+    <div class="section-title">Backend Mode</div>
     <div class="field">
-      <label for="workerUrl">Worker URL</label>
-      <input type="text" id="workerUrl" placeholder="https://vmcr-api.your-domain.workers.dev" />
+      <div class="radio-group">
+        <label><input type="radio" name="backendMode" value="cloud" checked /> Cloud</label>
+        <label><input type="radio" name="backendMode" value="ndi-router" /> NDI Router</label>
+      </div>
     </div>
-    <div class="field">
-      <label for="apiKey">API Key</label>
-      <input type="text" id="apiKey" placeholder="Your API key" />
+  </div>
+
+  <hr />
+
+  <!-- Cloud mode connection -->
+  <div id="cloudSection">
+    <div class="section">
+      <div class="section-title">Connection</div>
+      <div class="field">
+        <label for="workerUrl">Worker URL</label>
+        <input type="text" id="workerUrl" placeholder="https://vmcr-api.your-domain.workers.dev" />
+      </div>
+      <div class="field">
+        <label for="apiKey">API Key</label>
+        <input type="text" id="apiKey" placeholder="Your API key" />
+      </div>
+      <button id="saveCloudConnection">Save &amp; Connect</button>
+      <div id="cloudConnectionStatus" class="status"></div>
     </div>
-    <button id="saveConnection">Save &amp; Connect</button>
-    <div id="connectionStatus" class="status"></div>
+  </div>
+
+  <!-- NDI Router mode connection -->
+  <div id="ndiRouterSection" class="hidden">
+    <div class="section">
+      <div class="section-title">NDI Router Connection</div>
+      <div class="field">
+        <label for="routerUrl">Router URL</label>
+        <input type="text" id="routerUrl" placeholder="http://10.15.13.50:9400" />
+      </div>
+      <button id="saveRouterConnection">Save &amp; Connect</button>
+      <div id="routerConnectionStatus" class="status"></div>
+    </div>
   </div>
 
   <hr />
 
   <div class="section">
     <div class="section-title">Source Selection</div>
-    <div class="field">
-      <label for="sourceSelect">Source</label>
-      <select id="sourceSelect">
-        <option value="">— Select a source —</option>
+
+    <!-- Channel selection (NDI router mode) -->
+    <div id="channelField" class="field hidden">
+      <label for="channelSelect">Channel</label>
+      <select id="channelSelect">
+        <option value="">— Select a channel —</option>
       </select>
     </div>
-    <div class="field">
+
+    <!-- Output selection (Cloud mode) -->
+    <div id="outputField" class="field">
       <label>Output</label>
       <div class="radio-group">
         <label><input type="radio" name="outputId" value="A" checked /> <span class="output-a">Output A</span></label>
         <label><input type="radio" name="outputId" value="B" /> <span class="output-b">Output B</span></label>
       </div>
     </div>
+
+    <div class="field">
+      <label for="sourceSelect">Source</label>
+      <select id="sourceSelect">
+        <option value="">— Select a source —</option>
+      </select>
+    </div>
     <button id="refreshSources">Refresh Sources</button>
   </div>
 
   <script>
-    // Stream Deck PI SDK (loaded from SDK)
-    // In SDK 7.x the PI communicates via the SDPIComponents or manual WebSocket
-    // For simplicity, we use the standard PI communication pattern
-
     let websocket = null;
     let pluginUUID = null;
     let actionInfo = null;
@@ -148,7 +184,6 @@
 
       websocket.onopen = function() {
         websocket.send(JSON.stringify({ event: registerEvent, uuid: pluginUUID }));
-        // Request global settings
         websocket.send(JSON.stringify({ event: 'getGlobalSettings', context: pluginUUID }));
       };
 
@@ -170,13 +205,33 @@
         }
       };
 
-      // Load existing action settings
       loadActionSettings();
+    }
+
+    function getBackendMode() {
+      return globalSettings.backendMode || 'cloud';
+    }
+
+    function updateModeUI() {
+      const mode = getBackendMode();
+      const isNdi = mode === 'ndi-router';
+
+      document.getElementById('cloudSection').classList.toggle('hidden', isNdi);
+      document.getElementById('ndiRouterSection').classList.toggle('hidden', !isNdi);
+      document.getElementById('channelField').classList.toggle('hidden', !isNdi);
+      document.getElementById('outputField').classList.toggle('hidden', isNdi);
     }
 
     function loadGlobalSettings() {
       document.getElementById('workerUrl').value = globalSettings.workerUrl || '';
       document.getElementById('apiKey').value = globalSettings.apiKey || '';
+      document.getElementById('routerUrl').value = globalSettings.routerUrl || '';
+
+      const mode = getBackendMode();
+      const radio = document.querySelector('input[name="backendMode"][value="' + mode + '"]');
+      if (radio) radio.checked = true;
+
+      updateModeUI();
     }
 
     function loadActionSettings() {
@@ -184,16 +239,25 @@
         document.getElementById('sourceSelect').value = actionSettings.sourceId;
       }
       if (actionSettings.outputId) {
-        const radio = document.querySelector(`input[name="outputId"][value="${actionSettings.outputId}"]`);
+        const radio = document.querySelector('input[name="outputId"][value="' + actionSettings.outputId + '"]');
         if (radio) radio.checked = true;
+      }
+      if (actionSettings.channelId) {
+        document.getElementById('channelSelect').value = actionSettings.channelId;
       }
     }
 
     function saveGlobalSettings() {
-      const workerUrl = document.getElementById('workerUrl').value.trim();
-      const apiKey = document.getElementById('apiKey').value.trim();
+      const mode = document.querySelector('input[name="backendMode"]:checked')?.value || 'cloud';
 
-      globalSettings = { workerUrl, apiKey };
+      globalSettings.backendMode = mode;
+
+      if (mode === 'cloud') {
+        globalSettings.workerUrl = document.getElementById('workerUrl').value.trim();
+        globalSettings.apiKey = document.getElementById('apiKey').value.trim();
+      } else {
+        globalSettings.routerUrl = document.getElementById('routerUrl').value.trim();
+      }
 
       if (websocket) {
         websocket.send(JSON.stringify({
@@ -202,20 +266,28 @@
           payload: globalSettings
         }));
 
-        // Tell plugin to reinitialize connection
         websocket.send(JSON.stringify({
           event: 'sendToPlugin',
           action: actionInfo.action,
           context: pluginUUID,
-          payload: { command: 'setGlobalSettings', workerUrl, apiKey }
+          payload: {
+            command: 'setGlobalSettings',
+            backendMode: mode,
+            workerUrl: globalSettings.workerUrl,
+            apiKey: globalSettings.apiKey,
+            routerUrl: globalSettings.routerUrl,
+          }
         }));
       }
+    }
 
-      const status = document.getElementById('connectionStatus');
-      if (workerUrl && apiKey) {
+    function saveCloudConnection() {
+      saveGlobalSettings();
+
+      const status = document.getElementById('cloudConnectionStatus');
+      if (globalSettings.workerUrl && globalSettings.apiKey) {
         status.textContent = 'Settings saved. Connecting...';
         status.className = 'status success';
-        // Request sources
         requestSources();
       } else {
         status.textContent = 'Please enter Worker URL and API key.';
@@ -223,11 +295,32 @@
       }
     }
 
-    function saveActionSettings() {
-      const sourceId = document.getElementById('sourceSelect').value;
-      const outputId = document.querySelector('input[name="outputId"]:checked')?.value || 'A';
+    function saveRouterConnection() {
+      saveGlobalSettings();
 
-      actionSettings = { sourceId, outputId };
+      const status = document.getElementById('routerConnectionStatus');
+      if (globalSettings.routerUrl) {
+        status.textContent = 'Settings saved. Connecting...';
+        status.className = 'status success';
+        requestSources();
+        requestChannels();
+      } else {
+        status.textContent = 'Please enter Router URL.';
+        status.className = 'status error';
+      }
+    }
+
+    function saveActionSettings() {
+      const mode = getBackendMode();
+      const sourceId = document.getElementById('sourceSelect').value;
+
+      if (mode === 'ndi-router') {
+        const channelId = document.getElementById('channelSelect').value;
+        actionSettings = { sourceId, channelId };
+      } else {
+        const outputId = document.querySelector('input[name="outputId"]:checked')?.value || 'A';
+        actionSettings = { sourceId, outputId };
+      }
 
       if (websocket) {
         websocket.send(JSON.stringify({
@@ -249,24 +342,33 @@
       }
     }
 
+    function requestChannels() {
+      if (websocket) {
+        websocket.send(JSON.stringify({
+          event: 'sendToPlugin',
+          action: actionInfo.action,
+          context: pluginUUID,
+          payload: { command: 'getChannels' }
+        }));
+      }
+    }
+
     function handlePluginMessage(payload) {
       if (payload.event === 'sourcesLoaded') {
         const select = document.getElementById('sourceSelect');
         const currentValue = select.value;
 
-        // Clear and repopulate
         select.innerHTML = '<option value="">— Select a source —</option>';
 
         if (payload.sources && payload.sources.length > 0) {
           for (const source of payload.sources) {
             const option = document.createElement('option');
             option.value = source.id;
-            option.textContent = `${source.name} (${source.protocol.toUpperCase()})`;
+            option.textContent = source.name;
             select.appendChild(option);
           }
         }
 
-        // Restore selection
         if (currentValue) {
           select.value = currentValue;
         } else if (actionSettings.sourceId) {
@@ -274,19 +376,57 @@
         }
 
         if (payload.error) {
-          const status = document.getElementById('connectionStatus');
+          const statusId = getBackendMode() === 'ndi-router' ? 'routerConnectionStatus' : 'cloudConnectionStatus';
+          const status = document.getElementById(statusId);
           status.textContent = payload.error;
           status.className = 'status error';
+        }
+      }
+
+      if (payload.event === 'channelsLoaded') {
+        const select = document.getElementById('channelSelect');
+        const currentValue = select.value;
+
+        select.innerHTML = '<option value="">— Select a channel —</option>';
+
+        if (payload.channels && payload.channels.length > 0) {
+          for (const ch of payload.channels) {
+            const option = document.createElement('option');
+            option.value = ch.id;
+            option.textContent = ch.label;
+            option.style.color = ch.color;
+            select.appendChild(option);
+          }
+        }
+
+        if (currentValue) {
+          select.value = currentValue;
+        } else if (actionSettings.channelId) {
+          select.value = actionSettings.channelId;
         }
       }
     }
 
     // Event listeners
-    document.getElementById('saveConnection').addEventListener('click', saveGlobalSettings);
-    document.getElementById('refreshSources').addEventListener('click', requestSources);
+    document.getElementById('saveCloudConnection').addEventListener('click', saveCloudConnection);
+    document.getElementById('saveRouterConnection').addEventListener('click', saveRouterConnection);
+    document.getElementById('refreshSources').addEventListener('click', function() {
+      requestSources();
+      if (getBackendMode() === 'ndi-router') {
+        requestChannels();
+      }
+    });
+
+    document.querySelectorAll('input[name="backendMode"]').forEach(function(radio) {
+      radio.addEventListener('change', function() {
+        updateModeUI();
+        saveGlobalSettings();
+      });
+    });
 
     document.getElementById('sourceSelect').addEventListener('change', saveActionSettings);
-    document.querySelectorAll('input[name="outputId"]').forEach(radio => {
+    document.getElementById('channelSelect').addEventListener('change', saveActionSettings);
+    document.querySelectorAll('input[name="outputId"]').forEach(function(radio) {
       radio.addEventListener('change', saveActionSettings);
     });
   </script>

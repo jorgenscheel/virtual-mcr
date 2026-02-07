@@ -30,6 +30,21 @@ export type {
   StateSyncMessage,
 } from './types/api.js';
 
+export type {
+  RoutingChannelStatus,
+  NdiSource,
+  RoutingChannel,
+  RouteRequest,
+  RouteResult,
+  NdiChannelsSyncMessage,
+  NdiChannelRoutedMessage,
+  NdiChannelClearedMessage,
+  NdiSourcesUpdatedMessage,
+  NdiHeartbeatMessage,
+  NdiReceiverCountUpdatedMessage,
+  NdiWsMessage,
+} from './types/ndi-router.js';
+
 export {
   INPUT_PROTOCOLS,
   OUTPUT_IDS,
@@ -40,4 +55,7 @@ export {
   WS_RECONNECT_DELAY_MS,
   WS_MAX_RECONNECT_DELAY_MS,
   API_KEY_HEADER,
+  NDI_ROUTER_DEFAULT_PORT,
+  NDI_SOURCE_DISCOVERY_INTERVAL_MS,
+  NDI_RECEIVER_POLL_INTERVAL_MS,
 } from './constants.js';

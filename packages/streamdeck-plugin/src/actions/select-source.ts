@@ -8,19 +8,23 @@ import streamDeck, {
   type JsonValue,
   type JsonObject,
 } from '@elgato/streamdeck';
-import type { OutputId, Source, OutputStatus } from '@vmcr/shared';
-import { ApiClient } from '../services/api-client.js';
+import type { OutputId, OutputStatus } from '@vmcr/shared';
+import type { BackendClient, SourceItem, ChannelItem } from '../services/backend-client.js';
+import { CloudBackendClient } from '../services/cloud-backend-client.js';
 import { WsClient } from '../services/ws-client.js';
-import { renderSourceButton } from '../utils/image-renderer.js';
+import { renderSourceButton, renderSourceButtonDynamic } from '../utils/image-renderer.js';
 
 type SelectSourceSettings = JsonObject & {
   sourceId?: string;
   outputId?: string;
+  channelId?: string;
 };
 
 type SelectSourceGlobalSettings = {
+  backendMode?: 'cloud' | 'ndi-router';
   workerUrl?: string;
   apiKey?: string;
+  routerUrl?: string;
 };
 
 type TrackedAction = {
@@ -34,9 +38,10 @@ type TrackedAction = {
 
 export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
   private tracked = new Map<string, TrackedAction>();
-  private sourcesMap = new Map<string, Source>();
+  private sourcesMap = new Map<string, SourceItem>();
   private outputsMap = new Map<string, OutputStatus>();
-  private apiClient: ApiClient | null = null;
+  private channelsMap = new Map<string, ChannelItem>();
+  private backendClient: BackendClient | null = null;
   private wsClient: WsClient | null = null;
 
   private ensureWsClient(globalSettings: SelectSourceGlobalSettings): void {
@@ -82,7 +87,10 @@ export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
       setImage: (img) => act.setImage(img),
       setTitle: (title) => act.setTitle(title),
       showAlert: () => act.showAlert(),
-      showOk: () => ('showOk' in act ? (act as { showOk(): Promise<void> }).showOk() : act.showAlert()),
+      showOk: () =>
+        'showOk' in act
+          ? (act as { showOk(): Promise<void> }).showOk()
+          : act.showAlert(),
     });
 
     await this.renderButton(ev.action.id);
@@ -94,23 +102,22 @@ export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
 
   override async onKeyDown(ev: KeyDownEvent<SelectSourceSettings>): Promise<void> {
     const settings = ev.payload.settings;
+    const sourceId = settings.sourceId as string | undefined;
+    const channelId = (settings.channelId ?? settings.outputId) as string | undefined;
 
-    if (!settings.sourceId || !settings.outputId) {
+    if (!sourceId || !channelId) {
       await ev.action.showAlert();
       return;
     }
 
-    if (!this.apiClient) {
+    if (!this.backendClient) {
       await ev.action.showAlert();
       return;
     }
 
     try {
-      const result = await this.apiClient.switchOutput(
-        settings.outputId as OutputId,
-        settings.sourceId as string,
-      );
-      if (result.success) {
+      const ok = await this.backendClient.routeChannel(channelId, sourceId);
+      if (ok) {
         await ev.action.showOk();
       } else {
         await ev.action.showAlert();
@@ -136,19 +143,16 @@ export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
     const payload = ev.payload as Record<string, unknown>;
 
     if (payload.command === 'getSources') {
-      if (this.apiClient) {
+      if (this.backendClient) {
         try {
-          const response = await this.apiClient.listSources();
-          if (response.success && response.data) {
-            await streamDeck.ui.current?.sendToPropertyInspector({
-              event: 'sourcesLoaded',
-              sources: response.data.sources.map((s) => ({
-                id: s.id,
-                name: s.name,
-                protocol: s.protocol,
-              })),
-            });
-          }
+          const sources = await this.backendClient.listSources();
+          await streamDeck.ui.current?.sendToPropertyInspector({
+            event: 'sourcesLoaded',
+            sources: sources.map((s) => ({
+              id: s.id,
+              name: s.name,
+            })),
+          });
         } catch {
           await streamDeck.ui.current?.sendToPropertyInspector({
             event: 'sourcesLoaded',
@@ -159,13 +163,44 @@ export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
       }
     }
 
-    if (payload.command === 'setGlobalSettings') {
-      const workerUrl = payload.workerUrl as string;
-      const apiKey = payload.apiKey as string;
+    if (payload.command === 'getChannels') {
+      if (this.backendClient) {
+        try {
+          const channels = await this.backendClient.listChannels();
+          await streamDeck.ui.current?.sendToPropertyInspector({
+            event: 'channelsLoaded',
+            channels: channels.map((ch) => ({
+              id: ch.id,
+              label: ch.label,
+              color: ch.color,
+            })),
+          });
+        } catch {
+          await streamDeck.ui.current?.sendToPropertyInspector({
+            event: 'channelsLoaded',
+            channels: [],
+            error: 'Failed to load channels',
+          });
+        }
+      }
+    }
 
-      if (workerUrl && apiKey) {
-        this.apiClient = new ApiClient(workerUrl, apiKey);
-        this.ensureWsClient({ workerUrl, apiKey });
+    if (payload.command === 'setGlobalSettings') {
+      const backendMode = (payload.backendMode as string) ?? 'cloud';
+
+      if (backendMode === 'ndi-router') {
+        const routerUrl = payload.routerUrl as string;
+        if (routerUrl) {
+          const { NdiRouterClient } = await import('../services/ndi-router-client.js');
+          this.backendClient = new NdiRouterClient(routerUrl);
+        }
+      } else {
+        const workerUrl = payload.workerUrl as string;
+        const apiKey = payload.apiKey as string;
+        if (workerUrl && apiKey) {
+          this.backendClient = new CloudBackendClient(workerUrl, apiKey);
+          this.ensureWsClient({ workerUrl, apiKey });
+        }
       }
     }
   }
@@ -175,27 +210,41 @@ export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
     if (!t) return;
 
     const { settings } = t;
+    const sourceId = settings.sourceId as string | undefined;
+    const channelId = (settings.channelId ?? settings.outputId) as string | undefined;
 
-    if (!settings.sourceId || !settings.outputId) {
+    if (!sourceId || !channelId) {
       await t.setTitle('No Source');
       return;
     }
 
-    const sourceId = settings.sourceId as string;
-    const outputId = settings.outputId as OutputId;
     const source = this.sourcesMap.get(sourceId);
-    const output = this.outputsMap.get(outputId);
-    const isActive = output?.currentSource?.id === sourceId;
+    const channel = this.channelsMap.get(channelId);
 
-    const svg = renderSourceButton({
-      name: source?.name || 'Loading...',
-      outputId,
-      isActive,
-      thumbnailBase64: undefined,
-    });
-
-    await t.setImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
-    await t.setTitle('');
+    if (channel) {
+      // NDI router mode: dynamic channel
+      const isActive = channel.currentSource?.id === sourceId;
+      const svg = renderSourceButtonDynamic({
+        name: source?.name || sourceId,
+        channelLabel: channel.label,
+        channelColor: channel.color,
+        isActive,
+      });
+      await t.setImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+      await t.setTitle('');
+    } else {
+      // Cloud mode: fixed outputs A/B
+      const outputId = channelId as OutputId;
+      const output = this.outputsMap.get(outputId);
+      const isActive = output?.currentSource?.id === sourceId;
+      const svg = renderSourceButton({
+        name: source?.name || 'Loading...',
+        outputId,
+        isActive,
+      });
+      await t.setImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+      await t.setTitle('');
+    }
   }
 
   private updateAllButtons(): void {
@@ -204,19 +253,32 @@ export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
     }
   }
 
-  updateApiClient(client: ApiClient): void {
-    this.apiClient = client;
+  updateBackendClient(client: BackendClient): void {
+    this.backendClient = client;
   }
 
   updateWsClient(workerUrl: string, apiKey: string): void {
     this.ensureWsClient({ workerUrl, apiKey });
   }
 
-  setSources(sourceList: Source[]): void {
+  setSources(sourceList: SourceItem[]): void {
     this.sourcesMap.clear();
     for (const source of sourceList) {
       this.sourcesMap.set(source.id, source);
     }
+    this.updateAllButtons();
+  }
+
+  updateChannels(channels: ChannelItem[]): void {
+    this.channelsMap.clear();
+    for (const ch of channels) {
+      this.channelsMap.set(ch.id, ch);
+    }
+    this.updateAllButtons();
+  }
+
+  updateChannel(channelId: string, channel: ChannelItem): void {
+    this.channelsMap.set(channelId, channel);
     this.updateAllButtons();
   }
 }
