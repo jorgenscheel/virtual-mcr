@@ -16,6 +16,11 @@ type GlobalSettings = JsonObject & {
 const selectSourceAction = new SelectSourceAction();
 const outputStatusAction = new OutputStatusAction();
 
+// @ts-ignore - manifestId required by SDK for action registration
+selectSourceAction.manifestId = 'com.remoteproduction.vmcr.select-source';
+// @ts-ignore - manifestId required by SDK for action registration
+outputStatusAction.manifestId = 'com.remoteproduction.vmcr.output-status';
+
 let wsClient: WsClient | null = null;
 
 function handleCloudWsMessage(message: WsMessage): void {
@@ -74,6 +79,7 @@ async function initializeConnection(settings: GlobalSettings): Promise<void> {
   if (mode === 'ndi-router') {
     if (!settings.routerUrl) return;
     const routerUrl = settings.routerUrl as string;
+    streamDeck.logger.info(`Connecting to NDI router at ${routerUrl}`);
 
     const client = new NdiRouterClient(routerUrl);
     selectSourceAction.updateBackendClient(client);
@@ -81,11 +87,31 @@ async function initializeConnection(settings: GlobalSettings): Promise<void> {
     try {
       const sources = await client.listSources();
       selectSourceAction.setSources(sources);
+      streamDeck.logger.info(`Loaded ${sources.length} sources from NDI router`);
+
+      // Send sources to PI if open
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: 'sourcesLoaded',
+        sources: sources.map((s) => ({ id: s.id, name: s.name })),
+      });
+
       const channels = await client.listChannels();
       selectSourceAction.updateChannels(channels);
       outputStatusAction.updateFromNdiRouter(channels);
+      streamDeck.logger.info(`Loaded ${channels.length} channels from NDI router`);
+
+      // Send channels to PI if open
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: 'channelsLoaded',
+        channels: channels.map((ch) => ({ id: ch.id, label: ch.label, color: ch.color })),
+      });
     } catch (err) {
       streamDeck.logger.error('Failed to fetch initial data from NDI router:', String(err));
+      await streamDeck.ui.current?.sendToPropertyInspector({
+        event: 'sourcesLoaded',
+        sources: [],
+        error: `Connection failed: ${String(err)}`,
+      });
     }
 
     wsClient = new WsClient(routerUrl, '', (raw) => {

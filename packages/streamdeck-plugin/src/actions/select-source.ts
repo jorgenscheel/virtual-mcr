@@ -143,9 +143,12 @@ export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
     const payload = ev.payload as Record<string, unknown>;
 
     if (payload.command === 'getSources') {
+      streamDeck.logger.info('getSources command received');
       if (this.backendClient) {
         try {
+          streamDeck.logger.info('Calling backendClient.listSources()...');
           const sources = await this.backendClient.listSources();
+          streamDeck.logger.info(`Got ${sources.length} sources, sending to PI`);
           await streamDeck.ui.current?.sendToPropertyInspector({
             event: 'sourcesLoaded',
             sources: sources.map((s) => ({
@@ -153,20 +156,27 @@ export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
               name: s.name,
             })),
           });
-        } catch {
+          streamDeck.logger.info('Sources sent to PI');
+        } catch (err) {
+          streamDeck.logger.error('Failed to load sources:', String(err));
           await streamDeck.ui.current?.sendToPropertyInspector({
             event: 'sourcesLoaded',
             sources: [],
             error: 'Failed to load sources',
           });
         }
+      } else {
+        streamDeck.logger.warn('getSources called but backendClient is null');
       }
     }
 
     if (payload.command === 'getChannels') {
+      streamDeck.logger.info('getChannels command received');
       if (this.backendClient) {
         try {
+          streamDeck.logger.info('Calling backendClient.listChannels()...');
           const channels = await this.backendClient.listChannels();
+          streamDeck.logger.info(`Got ${channels.length} channels, sending to PI`);
           await streamDeck.ui.current?.sendToPropertyInspector({
             event: 'channelsLoaded',
             channels: channels.map((ch) => ({
@@ -175,13 +185,17 @@ export class SelectSourceAction extends SingletonAction<SelectSourceSettings> {
               color: ch.color,
             })),
           });
-        } catch {
+          streamDeck.logger.info('Channels sent to PI');
+        } catch (err) {
+          streamDeck.logger.error('Failed to load channels:', String(err));
           await streamDeck.ui.current?.sendToPropertyInspector({
             event: 'channelsLoaded',
             channels: [],
             error: 'Failed to load channels',
           });
         }
+      } else {
+        streamDeck.logger.warn('getChannels called but backendClient is null');
       }
     }
 

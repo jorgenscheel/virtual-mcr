@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
 import { healthRoutes } from './health.js';
 import { channelRoutes } from './channels.js';
 import { sourceRoutes } from './sources.js';
@@ -16,6 +17,7 @@ type AppDeps = {
 export function createApp(deps: AppDeps): { app: Hono; broadcast: WsBroadcast } {
   const app = new Hono();
 
+  app.use('*', logger());
   app.use('*', cors());
 
   app.route('/api', healthRoutes);

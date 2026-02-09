@@ -1,0 +1,7 @@
+{
+  "name": "com.remoteproduction.vmcr",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Virtual MCR Stream Deck Plugin",
+  "private": true
+}
